@@ -22,14 +22,7 @@ pub struct FormData {
     )
 )]
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    // Spans, like logs, have an associated level, this case we are using 'info'
-    // let request_span = tracing::info_span!(
-    //     "Saving new subscriber details in the database"
-    // );
 
-    // // Using 'enter' in an async function is a recipe for disaster. for now we will use it
-    // let _request_span_guard = request_span.enter();
-    // Request span is dropped after the end of the subscribe function, that is when we 'exit' the span
     let query_span = tracing::info_span!("Saving new subscriber details in the database",);
 
     match sqlx::query!(
