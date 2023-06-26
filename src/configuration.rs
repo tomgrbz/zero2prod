@@ -1,11 +1,23 @@
 use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{postgres::{PgConnectOptions, PgSslMode}, ConnectOptions};
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
+use crate::domain::SubscriberEmail;
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
+}
+
+#[derive(serde::Deserialize)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+    pub authorization_token: Secret<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -47,9 +59,10 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .add_source(config::File::from(
             configuration_directory.join(&environment_filename),
         ))
-        .add_source(config::Environment::with_prefix("APP")
-            .prefix_separator("_")
-            .separator("__")
+        .add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
         )
         .build()?;
     //try to convert the config values it read into our settings type
@@ -98,13 +111,17 @@ impl DatabaseSettings {
             .password(&self.password.expose_secret())
             .port(self.port)
             .ssl_mode(ssl_mode)
-        
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
         let mut options = self.without_db().database(&self.database_name);
         options.log_statements(tracing_log::log::LevelFilter::Trace);
         options
-        
+    }
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
     }
 }
