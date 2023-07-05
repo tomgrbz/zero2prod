@@ -22,7 +22,7 @@ impl EmailClient {
             authorization_token: auth_token,
         }
     }
-    pub async fn send_mail(
+    pub async fn send_email(
         &self,
         recipient: SubscriberEmail,
         subject: &str,
@@ -138,7 +138,7 @@ mod tests {
 
         // Act
         let _ = email_client
-            .send_mail(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content(), &content())
             .await;
     }
     #[tokio::test]
@@ -158,7 +158,7 @@ mod tests {
 
         // Act
         let outcome = email_client
-            .send_mail(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content(), &content())
             .await;
 
         // Assert
@@ -180,7 +180,7 @@ mod tests {
 
         // Act
         let outcome = email_client
-            .send_mail(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert
         assert_err!(outcome);
@@ -204,7 +204,7 @@ mod tests {
 
         // Act
         let outcome = email_client
-            .send_mail(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert
         assert_err!(outcome);
