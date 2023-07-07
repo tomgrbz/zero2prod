@@ -1,15 +1,14 @@
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::email_client::EmailClient;
+use crate::startup::ApplicationBaseUrl;
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
-use sqlx::PgPool;
-use unicode_segmentation::UnicodeSegmentation;
-use uuid::Uuid;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+use sqlx::PgPool;
 use sqlx::{Postgres, Transaction};
-use crate::email_client::{EmailClient};
-use crate::startup::ApplicationBaseUrl;
-use crate::domain::{NewSubscriber, SubscriberName, SubscriberEmail};
-
+use unicode_segmentation::UnicodeSegmentation;
+use uuid::Uuid;
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -23,7 +22,7 @@ impl TryFrom<FormData> for NewSubscriber {
     fn try_from(value: FormData) -> Result<Self, Self::Error> {
         let name = SubscriberName::parse(value.name)?;
         let email = SubscriberEmail::parse(value.email)?;
-        Ok(Self {email, name})
+        Ok(Self { email, name })
     }
 }
 #[tracing::instrument(
@@ -34,34 +33,40 @@ impl TryFrom<FormData> for NewSubscriber {
         subscriber_name = %form.name
     )
 )]
-pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>, email_client: web::Data<EmailClient>, base_url: web::Data<ApplicationBaseUrl>) -> HttpResponse {
+pub async fn subscribe(
+    form: web::Form<FormData>,
+    pool: web::Data<PgPool>,
+    email_client: web::Data<EmailClient>,
+    base_url: web::Data<ApplicationBaseUrl>,
+) -> HttpResponse {
     //web::Form is a wrapper around FormData, use form.0 gives acces to underlying FormData
     let new_subscriber = match form.0.try_into() {
         Ok(form) => form,
-        Err(_) => return HttpResponse::BadRequest().finish()
+        Err(_) => return HttpResponse::BadRequest().finish(),
     };
     let mut transaction = match pool.begin().await {
-        Ok(transaction) => transaction, 
+        Ok(transaction) => transaction,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
     let subscriber_id = match insert_subscriber(&mut transaction, &new_subscriber).await {
         Ok(subscriber_id) => subscriber_id,
-        Err(_) => return HttpResponse::InternalServerError().finish(),  
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
     let subscription_token = generate_subscription_token();
     if store_token(&mut transaction, subscriber_id, &subscription_token)
         .await
-        .is_err() {
-            return HttpResponse::InternalServerError().finish();
-        }
+        .is_err()
+    {
+        return HttpResponse::InternalServerError().finish();
+    }
     if send_confirmation_email(
-        &email_client, 
+        &email_client,
         new_subscriber,
         &base_url.0,
         &subscription_token,
-        )
-		.await
-		.is_err() 
+    )
+    .await
+    .is_err()
     {
         return HttpResponse::InternalServerError().finish();
     }
@@ -104,7 +109,10 @@ pub async fn send_confirmation_email(
     base_url: &str,
     subscription_token: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = format!("{}/subscriptions/confirm?subscription_token={}", base_url, subscription_token);
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token={}",
+        base_url, subscription_token
+    );
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
         confirmation_link
@@ -112,15 +120,10 @@ pub async fn send_confirmation_email(
     let html_body = format!(
         "Welcome to our newsletter!<br />\
         Click <a href=\"{}\">here</a> to confirm your subscription.",
-      confirmation_link
+        confirmation_link
     );
     email_client
-        .send_email(
-            new_subscriber.email, 
-            "Welcome!", 
-            &html_body, 
-            &plain_body
-        )
+        .send_email(new_subscriber.email, "Welcome!", &html_body, &plain_body)
         .await
 }
 
@@ -128,7 +131,10 @@ pub async fn send_confirmation_email(
     name = "Saving new subscriber details in the database",
     skip(new_subscriber, transaction)
 )]
-pub async fn insert_subscriber(transaction: &mut Transaction<'_, Postgres>, new_subscriber: &NewSubscriber) -> Result<Uuid, sqlx::Error> {
+pub async fn insert_subscriber(
+    transaction: &mut Transaction<'_, Postgres>,
+    new_subscriber: &NewSubscriber,
+) -> Result<Uuid, sqlx::Error> {
     let subscriber_id = Uuid::new_v4();
     sqlx::query!(
         r#"INSERT INTO subscriptions (id, email, name, subscribed_at, status)

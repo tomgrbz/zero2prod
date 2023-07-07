@@ -1,22 +1,23 @@
 use crate::domain::SubscriberEmail;
 use reqwest::Client;
-use secrecy::{Secret, ExposeSecret};
+use secrecy::{ExposeSecret, Secret};
 pub struct EmailClient {
     http_client: Client,
     base_url: String,
     sender: SubscriberEmail,
     // We don't want to log this on accident
     authorization_token: Secret<String>,
-    
 }
 
 impl EmailClient {
-    pub fn new(base_url: String, sender:SubscriberEmail, auth_token: Secret<String>, timeout: std::time::Duration) -> Self {
+    pub fn new(
+        base_url: String,
+        sender: SubscriberEmail,
+        auth_token: Secret<String>,
+        timeout: std::time::Duration,
+    ) -> Self {
         Self {
-            http_client: Client::builder()
-                .timeout(timeout)
-                .build()
-                .unwrap(),
+            http_client: Client::builder().timeout(timeout).build().unwrap(),
             base_url,
             sender,
             authorization_token: auth_token,
@@ -27,7 +28,7 @@ impl EmailClient {
         recipient: SubscriberEmail,
         subject: &str,
         html_content: &str,
-        text_content: &str
+        text_content: &str,
     ) -> Result<(), reqwest::Error> {
         let url = format!("{}/email", self.base_url);
         let request_body = SendEmailRequest {
@@ -41,8 +42,9 @@ impl EmailClient {
             .post(&url)
             .header(
                 "X-Postmark-Server-Token",
-                self.authorization_token.expose_secret()
-            ).json(&request_body)
+                self.authorization_token.expose_secret(),
+            )
+            .json(&request_body)
             .send()
             .await?
             .error_for_status()?;
@@ -60,38 +62,35 @@ struct SendEmailRequest<'a> {
     text_body: &'a str,
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::domain::SubscriberEmail;
     use crate::email_client::EmailClient;
     //use actix_web::web::method;
+    use claims::assert_err;
+    use claims::assert_ok;
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::{Fake, Faker};
-    use wiremock::matchers::{header_exists, header, path, method};
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-    use wiremock::Request;
     use secrecy::Secret;
     use wiremock::matchers::any;
-    use claims::assert_ok;
-    use claims::assert_err;
+    use wiremock::matchers::{header, header_exists, method, path};
+    use wiremock::Request;
+    use wiremock::{Mock, MockServer, ResponseTemplate};
     struct SendEmailBodyMatcher;
 
     impl wiremock::Match for SendEmailBodyMatcher {
         fn matches(&self, request: &Request) -> bool {
             // Try to parse the body as a JSON value
-            let result: Result<serde_json::Value, _> = 
-                serde_json::from_slice(&request.body);
+            let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
             if let Ok(body) = result {
                 // Check that all mandatory fields are populated
-                // without inspecting the field values 
+                // without inspecting the field values
                 body.get("From").is_some()
                     && body.get("To").is_some()
                     && body.get("Subject").is_some()
                     && body.get("HtmlBody").is_some()
                     && body.get("TextBody").is_some()
-
             } else {
                 // If parsing failed, do not match request
                 false
@@ -99,7 +98,7 @@ mod tests {
         }
     }
 
-    // Generate a random email subject 
+    // Generate a random email subject
     fn subject() -> String {
         Sentence(1..2).fake()
     }
@@ -114,17 +113,21 @@ mod tests {
         SubscriberEmail::parse(SafeEmail().fake()).unwrap()
     }
 
-    // Get a test instance of EmailClient 
+    // Get a test instance of EmailClient
     fn email_client(base_url: String) -> EmailClient {
-        EmailClient::new(base_url, email(), Secret::new(Faker.fake()), std::time::Duration::from_millis(200))
+        EmailClient::new(
+            base_url,
+            email(),
+            Secret::new(Faker.fake()),
+            std::time::Duration::from_millis(200),
+        )
     }
-
 
     #[tokio::test]
     async fn send_email_sends_the_expected_request() {
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
-        
+
         Mock::given(header_exists("X-Postmark-Server-Token"))
             .and(header("Content-Type", "application/json"))
             .and(path("/email"))
@@ -147,7 +150,7 @@ mod tests {
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
 
-        // We do not copy in all the matchers we have in the other test.    
+        // We do not copy in all the matchers we have in the other test.
         // The purpose of this test is not to assert on the request we are sending out!
         // We add the bare minimum needed to trigger the path we want to test in `send_email`
         Mock::given(any())
@@ -168,7 +171,7 @@ mod tests {
     #[tokio::test]
     async fn send_email_fails_if_the_server_returns_500() {
         // Arrange
-        let mock_server = MockServer::start().await;        
+        let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
 
         Mock::given(any())
@@ -208,5 +211,5 @@ mod tests {
             .await;
         // Assert
         assert_err!(outcome);
-    }   
+    }
 }

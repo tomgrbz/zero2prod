@@ -1,10 +1,10 @@
+use crate::domain::SubscriberEmail;
 use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{
     postgres::{PgConnectOptions, PgSslMode},
     ConnectOptions,
 };
-use crate::domain::SubscriberEmail;
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -18,7 +18,7 @@ pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,
     pub authorization_token: Secret<String>,
-    pub timeout_milliseconds: u64
+    pub timeout_milliseconds: u64,
 }
 
 #[derive(serde::Deserialize, Clone)]
