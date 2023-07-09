@@ -68,5 +68,5 @@ async fn clicking_on_the_confirmation_link_confirms_a_subscriber() {
 
     assert_eq!(saved.email, "ursula_le_guin@gmail.com");
     assert_eq!(saved.name, "le guin");
-    assert_eq!(saved.status, "confirmed");
+    assert_eq!(saved.status.unwrap(), "confirmed");
 }
