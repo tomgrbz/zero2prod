@@ -1,7 +1,8 @@
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use crate::email_client::EmailClient;
 use crate::startup::ApplicationBaseUrl;
-use actix_web::{web, HttpResponse, ResponseError, http::StatusCode};
+use actix_web::{http::StatusCode, web, HttpResponse, ResponseError};
+use anyhow::Context;
 use chrono::Utc;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -9,8 +10,6 @@ use sqlx::PgPool;
 use sqlx::{Postgres, Transaction};
 use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
-use anyhow::Context;
-
 
 pub struct StoreTokenError(sqlx::Error);
 
@@ -60,8 +59,10 @@ impl ResponseError for SubscribeError {
     }
 }
 
-
-fn error_chain_fmt(e: &impl std::error::Error, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
     writeln!(f, "{}\n", e)?;
     let mut current = e.source();
     while let Some(cause) = current {
@@ -145,9 +146,7 @@ pub async fn store_token(
     )
     .execute(transaction)
     .await
-    .map_err(|e| {
-        StoreTokenError(e)
-    })?;
+    .map_err(|e| StoreTokenError(e))?;
     Ok(())
 }
 #[tracing::instrument(
@@ -196,10 +195,7 @@ pub async fn insert_subscriber(
         Utc::now(),
     )
     .execute(transaction)
-    .await
-    .map_err(|e| {
-        e
-    })?;
+    .await?;
 
     // Using the `?` operator to return early
     // if the function failed, returning a sql::Error

@@ -1,5 +1,5 @@
-use crate::helpers::{spawn_app, TestApp, ConfirmationLinks};
-use actix_web::dev::Response;
+use crate::helpers::{spawn_app, ConfirmationLinks, TestApp};
+
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
 
@@ -61,11 +61,11 @@ async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
         .pop()
         .unwrap();
 
-    app.get_confirmation_links(&email_request)
+    app.get_confirmation_links(email_request)
 }
 
 async fn create_confirmed_subscriber(app: &TestApp) {
-    // We can then reuse the same helper and just add 
+    // We can then reuse the same helper and just add
     // an extra step to actually call the confirmation link
     let confirmation_link = create_unconfirmed_subscriber(app).await;
     reqwest::get(confirmation_link.html)
