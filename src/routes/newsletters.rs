@@ -5,7 +5,7 @@ use actix_web::http::{header, StatusCode};
 use actix_web::HttpRequest;
 use actix_web::{web, HttpResponse, ResponseError};
 use anyhow::Context;
-use argon2::{Algorithm, Argon2, Params, PasswordHash, PasswordVerifier, Version};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use base64::Engine;
 use secrecy::{ExposeSecret, Secret};
 use sha3::Digest;
@@ -33,7 +33,7 @@ fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Erro
         .context("The decoded credential string is not valid UTF8.")?;
 
     // Split into two segments, using ':' as delimiter
-    let mut credentials = decoded_credentials.splitn(2, ":");
+    let mut credentials = decoded_credentials.splitn(2, ':');
     let username = credentials
         .next()
         .ok_or_else(|| anyhow::anyhow!("A username must be provided in 'Basic' auth."))?
