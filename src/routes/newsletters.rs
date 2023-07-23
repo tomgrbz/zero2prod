@@ -1,4 +1,5 @@
 use crate::domain::SubscriberEmail;
+use crate::telemetry::spawn_blocking_with_tracing;
 use crate::{email_client::EmailClient, routes::error_chain_fmt};
 use actix_web::http::header::{HeaderMap, HeaderValue};
 use actix_web::http::{header, StatusCode};
@@ -9,7 +10,6 @@ use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use base64::Engine;
 use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
-use crate::telemetry::spawn_blocking_with_tracing;
 
 struct Credentials {
     username: String,
@@ -54,10 +54,7 @@ async fn validate_credentials(
     credentials: Credentials,
     pool: &PgPool,
 ) -> Result<uuid::Uuid, PublishError> {
-    let (user_id, expected_password_hash) = get_stored_credentials(
-            &credentials.username, 
-            &pool
-        )
+    let (user_id, expected_password_hash) = get_stored_credentials(&credentials.username, pool)
         .await
         .map_err(PublishError::UnexpectedError)?
         .ok_or_else(|| PublishError::AuthError(anyhow::anyhow!("Unknown username.")))?;
@@ -67,7 +64,7 @@ async fn validate_credentials(
     .await
     .context("Failed to spawn blocking task")
     .map_err(PublishError::UnexpectedError)??;
-    
+
     Ok(user_id)
 }
 
@@ -79,16 +76,15 @@ fn verify_password_hash(
     expected_password_hash: Secret<String>,
     password_candidate: Secret<String>,
 ) -> Result<(), PublishError> {
-    let expected_password_hash = PasswordHash::new(
-        expected_password_hash.expose_secret()
-        )
+    let expected_password_hash = PasswordHash::new(expected_password_hash.expose_secret())
         .context("Failed to parse hash in PHC string format.")
         .map_err(PublishError::UnexpectedError)?;
     Argon2::default()
         .verify_password(
-            password_candidate.expose_secret().as_bytes(), 
-            &expected_password_hash
-        ).context("Invalid Password")
+            password_candidate.expose_secret().as_bytes(),
+            &expected_password_hash,
+        )
+        .context("Invalid Password")
         .map_err(PublishError::AuthError)
 }
 

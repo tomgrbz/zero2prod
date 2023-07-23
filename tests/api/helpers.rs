@@ -1,6 +1,6 @@
-use once_cell::sync::Lazy;
 use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHash, PasswordHasher};
+use argon2::{Argon2, PasswordHasher};
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -118,8 +118,6 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
-
-   
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -138,6 +136,7 @@ pub async fn spawn_app() -> TestApp {
         .expect("Failed to build application");
     // Get the port before spawning the application
     let application_port = application.port();
+    #[allow(clippy::all)]
     let _ = tokio::spawn(application.run_until_stopped());
     let test_app = TestApp {
         address: format!("http://127.0.0.1:{}", application_port),

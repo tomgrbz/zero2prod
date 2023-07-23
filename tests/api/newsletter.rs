@@ -1,7 +1,7 @@
 use crate::helpers::{spawn_app, ConfirmationLinks, TestApp};
+use uuid::Uuid;
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
-use uuid::Uuid;
 
 #[tokio::test]
 async fn newsletters_are_not_deliverd_to_unconfirmed_subscribers() {
@@ -168,18 +168,18 @@ async fn non_existing_user_is_rejected() {
     let password = Uuid::new_v4().to_string();
 
     let response = reqwest::Client::new()
-    .post(&format!("{}/newsletters", &app.address))
-    .basic_auth(username, Some(password))
-    .json(&serde_json::json!({
-        "title": "Newsletter title",
-        "content": {
-            "text": "Newsletter body as plain text",
-            "html": "<p>Newsletter body as HTML</p>",
-        }
-    }))
-    .send()
-    .await
-    .expect("Failed to execute request.");
+        .post(&format!("{}/newsletters", &app.address))
+        .basic_auth(username, Some(password))
+        .json(&serde_json::json!({
+            "title": "Newsletter title",
+            "content": {
+                "text": "Newsletter body as plain text",
+                "html": "<p>Newsletter body as HTML</p>",
+            }
+        }))
+        .send()
+        .await
+        .expect("Failed to execute request.");
 
     assert_eq!(401, response.status().as_u16());
     assert_eq!(
@@ -206,7 +206,7 @@ async fn invalid_password_is_rejected() {
                 "text": "Newsletter body as plain text",
                 "html": "<p>Newsletter body as HTML</p>",
             }
-        }))980
+        }))
         .send()
         .await
         .expect("Failed to execute request.");
