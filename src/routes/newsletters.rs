@@ -1,3 +1,4 @@
+use crate::authentication::{validate_credentials, AuthError, Credentials};
 use crate::domain::SubscriberEmail;
 use crate::{email_client::EmailClient, routes::error_chain_fmt};
 use actix_web::http::header::{HeaderMap, HeaderValue};
@@ -8,9 +9,6 @@ use anyhow::Context;
 use base64::Engine;
 use secrecy::Secret;
 use sqlx::PgPool;
-use crate::authentication::{AuthError, validate_credentials, Credentials};
-
-
 
 fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Error> {
     // The header value, if present, must be a valid UTF-8 string
@@ -44,8 +42,6 @@ fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Erro
         password: Secret::new(password),
     })
 }
-
-
 
 #[derive(thiserror::Error)]
 pub enum PublishError {
@@ -136,10 +132,11 @@ pub async fn publish_newsletter(
         // Bubble up the error, performing the ncessary conversion
         .map_err(PublishError::AuthError)?;
     tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
-    let user_id = validate_credentials(credentials, &pool).await
+    let user_id = validate_credentials(credentials, &pool)
+        .await
         .map_err(|e| match e {
             AuthError::InvalidCredentials(_) => PublishError::AuthError(e.into()),
-            AuthError::UnexpectedError(_) => PublishError::UnexpectedError(e.into())
+            AuthError::UnexpectedError(_) => PublishError::UnexpectedError(e.into()),
         })?;
     tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
     let subscribers = get_confirmed_subscribers(&pool).await?;

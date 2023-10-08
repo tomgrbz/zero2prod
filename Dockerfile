@@ -13,7 +13,7 @@ COPY --from=planner /app/recipe.json recipe.json
 # Build our project dependencies not our application
 RUN cargo chef cook --release --recipe-path recipe.json
 
-
+    
 # Up to this point, if our dependency tree stays the same, 
 # all layers should be cached
 COPY . .

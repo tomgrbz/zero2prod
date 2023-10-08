@@ -1,5 +1,5 @@
 use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHasher, Params, Version, Algorithm};
+use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
 use once_cell::sync::Lazy;
 use reqwest::Body;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -43,13 +43,13 @@ impl TestUser {
     async fn store(&self, pool: &PgPool) {
         let salt = SaltString::generate(&mut rand::thread_rng());
         let password_hash = Argon2::new(
-            Algorithm::Argon2id, 
+            Algorithm::Argon2id,
             Version::V0x13,
             Params::new(15000, 2, 1, None).unwrap(),
         )
-            .hash_password(self.password.as_bytes(), &salt)
-            .unwrap()
-            .to_string();
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash)
             VALUES ($1, $2, $3)",
@@ -124,19 +124,17 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
-    
-    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response 
-    where 
-        Body: serde::Serialize 
-        {
-            self.api_client
-                .post(&format!("{}/login", &self.address))
-                .form(body)
-                .send()
-                .await
-                .expect("Failed to execute request.")
 
-
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.api_client
+            .post(&format!("{}/login", &self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
     }
 
     pub async fn get_login_html(&self) -> String {
@@ -148,6 +146,18 @@ impl TestApp {
             .text()
             .await
             .unwrap()
+    }
+
+    pub async fn get_admin_dashboard(&self) -> String {
+        self.api_client
+            .get(&format!("{}/admin/dashboard", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute admin dashboard GET request")
+            .text()
+            .await
+            .unwrap()
+
     }
 }
 
