@@ -4,6 +4,8 @@ use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
 use actix_web::http::header::ContentType;
+use crate::session_state::TypedSession;
+use actix_web::http::header::LOCATION;
 
 
 fn e500<T>(e: T) -> actix_web::Error
@@ -12,14 +14,16 @@ where
     actix_web::error::ErrorInternalServerError(e)
 }
 
-pub async fn admin_dashboard(session: Session, pool: Data<PgPool>) -> Result<HttpResponse, actix_web::Error> {
+pub async fn admin_dashboard(session: TypedSession, pool: Data<PgPool>) -> Result<HttpResponse, actix_web::Error> {
     let username = if let Some(user_id) = session
-        .get::<Uuid>("user_id")
+        .get_user_id()
         .map_err(e500)?
     {
         get_username(user_id, &pool).await.map_err(e500)?
     } else {
-        todo!()
+        return Ok(HttpResponse::SeeOther()
+            .insert_header((LOCATION, "/login"))
+            .finish());
     };
 
     Ok(HttpResponse::Ok()

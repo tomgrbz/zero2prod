@@ -30,7 +30,7 @@ pub async fn run(
     redis_uri: Secret<String>,
 ) -> Result<Server, anyhow::Error> {
     let db_pool = web::Data::new(db_pool);
-    let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await?;
+    let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await.expect("Failed to connect to redis instance.");
     let email_client = web::Data::new(email_client);
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
