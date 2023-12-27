@@ -20,7 +20,7 @@ pub async fn change_password(
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if (12 > form.0.new_password.expose_secret().len())
-        && (128 < form.0.new_password.expose_secret().len())
+        || (128 < form.0.new_password.expose_secret().len())
     {
         FlashMessage::error("New password must be within 12 and 128 characters.").send();
         return Ok(see_other("/admin/password"));
@@ -54,5 +54,9 @@ pub async fn change_password(
             AuthError::UnexpectedError(_) => Err(e500(e)),
         };
     }
-    todo!()
+    crate::authentication::change_password(user_id, form.0.new_password, &pool)
+        .await
+        .map_err(e500)?;
+    FlashMessage::error("Your password has been changed.").send();
+    Ok(see_other("/admin/password"))
 }
