@@ -1,7 +1,7 @@
 use argon2::password_hash::SaltString;
 use argon2::{Algorithm, Argon2, Params, PasswordHasher, Version};
 use once_cell::sync::Lazy;
-use reqwest::Body;
+
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -156,7 +156,6 @@ impl TestApp {
             .send()
             .await
             .expect("Failed to execute admin dashboard GET request")
-
     }
     pub async fn get_admin_dashboard_html(&self) -> String {
         self.get_admin_dashboard().await.text().await.unwrap()
@@ -172,7 +171,8 @@ impl TestApp {
 
     pub async fn post_change_password<Body>(&self, body: &Body) -> reqwest::Response
     where
-    Body: serde::Serialize{
+        Body: serde::Serialize,
+    {
         self.api_client
             .post(&format!("{}/admin/password", &self.address))
             .form(body)

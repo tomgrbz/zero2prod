@@ -1,12 +1,11 @@
-use actix_web::{HttpResponse, web};
-use secrecy::{ExposeSecret, Secret};
+use crate::authentication::{validate_credentials, AuthError, Credentials};
+use crate::routes::admin::dashboard::get_username;
 use crate::session_state::TypedSession;
 use crate::utils::{e500, see_other};
-use crate::routes::admin::dashboard::get_username;
+use actix_web::{web, HttpResponse};
 use actix_web_flash_messages::FlashMessage;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
-use crate::authentication::{AuthError, Credentials, validate_credentials};
-
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -20,13 +19,11 @@ pub async fn change_password(
     session: TypedSession,
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    if (12 > form.0.new_password.expose_secret().len()) && (128 < form.0.new_password.expose_secret().len()) {
-        FlashMessage::error(
-            "New password must be within 12 and 128 characters."
-        )
-            .send();
-        return Ok(see_other("/admin/password"))
-
+    if (12 > form.0.new_password.expose_secret().len())
+        && (128 < form.0.new_password.expose_secret().len())
+    {
+        FlashMessage::error("New password must be within 12 and 128 characters.").send();
+        return Ok(see_other("/admin/password"));
     }
     let user_id = session.get_user_id().map_err(e500)?;
 
@@ -39,12 +36,12 @@ pub async fn change_password(
         FlashMessage::error(
             "You entered two different new passwords - the field values must match.",
         )
-            .send();
+        .send();
         return Ok(see_other("/admin/password"));
     }
     let username = get_username(user_id, &pool).await.map_err(e500)?;
 
-    let credentials = Credentials{
+    let credentials = Credentials {
         username,
         password: form.0.current_password,
     };
@@ -54,9 +51,8 @@ pub async fn change_password(
                 FlashMessage::error("The current password is incorrect.").send();
                 Ok(see_other("/admin/password"))
             }
-            AuthError::UnexpectedError(_) => Err(e500(e)).into(),
-        }
+            AuthError::UnexpectedError(_) => Err(e500(e)),
+        };
     }
     todo!()
-
 }

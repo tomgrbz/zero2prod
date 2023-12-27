@@ -1,5 +1,6 @@
 use crate::authentication::{validate_credentials, AuthError, Credentials};
 use crate::routes::error_chain_fmt;
+use crate::session_state::TypedSession;
 use actix_web::http::header::LOCATION;
 use actix_web::http::StatusCode;
 use actix_web::web;
@@ -8,7 +9,6 @@ use actix_web::{error::InternalError, HttpResponse};
 use actix_web_flash_messages::FlashMessage;
 use secrecy::Secret;
 use sqlx::PgPool;
-use crate::session_state::TypedSession;
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -44,8 +44,7 @@ pub async fn login(
             session.renew();
             session
                 .insert_user_id(user_id)
-                .map_err(|e|
-                login_redirect(LoginError::UnexpectedError(e.into())))?;
+                .map_err(|e| login_redirect(LoginError::UnexpectedError(e.into())))?;
             Ok(HttpResponse::SeeOther()
                 .insert_header((LOCATION, "/admin/dashboard"))
                 .finish())
@@ -64,7 +63,7 @@ pub async fn login(
 fn login_redirect(e: LoginError) -> InternalError<LoginError> {
     FlashMessage::error(e.to_string()).send();
     let response = HttpResponse::SeeOther()
-        .insert_header((LOCATION, format!("/login")))
+        .insert_header((LOCATION, "/login".to_string()))
         .finish();
     InternalError::from_response(e, response)
 }

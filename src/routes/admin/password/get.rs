@@ -1,8 +1,8 @@
+use crate::session_state::TypedSession;
+use crate::utils::{e500, see_other};
 use actix_web::http::header::ContentType;
 use actix_web::HttpResponse;
 use actix_web_flash_messages::IncomingFlashMessages;
-use crate::session_state::TypedSession;
-use crate::utils::{e500, see_other};
 use std::fmt::Write;
 
 pub async fn change_password_form(
@@ -17,8 +17,10 @@ pub async fn change_password_form(
         writeln!(msg_html, "<p><i>{}</i></p>", m.content()).unwrap();
     }
 
-    Ok(HttpResponse::Ok().content_type(ContentType::html()).body(format!(
-        r#"<!DOCTYPE html>
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(format!(
+            r#"<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
@@ -56,5 +58,5 @@ pub async fn change_password_form(
     <p><a href="/admin/dashboard">&lt;- Back</a></p>
 </body>
 </html>"#,
-    )))
+        )))
 }

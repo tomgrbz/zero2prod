@@ -1,18 +1,21 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::email_client::EmailClient;
-use crate::routes::{confirm, health_check, home, login, login_form, publish_newsletter, subscribe, admin_dashboard, change_password, change_password_form};
+use crate::routes::{
+    admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
+    login_form, publish_newsletter, subscribe,
+};
+use actix_session::{storage::RedisSessionStore, SessionMiddleware};
 use actix_web::dev::Server;
-use actix_web::{web, web::Data, App, HttpServer, cookie::Key};
-use actix_web_flash_messages::FlashMessagesFramework;
+use actix_web::{cookie::Key, web, web::Data, App, HttpServer};
 use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_flash_messages::FlashMessagesFramework;
 use secrecy::ExposeSecret;
 use secrecy::Secret;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
-use actix_session::{SessionMiddleware, storage::RedisSessionStore};
 
 pub struct ApplicationBaseUrl(pub String);
 
@@ -29,7 +32,9 @@ pub async fn run(
 ) -> Result<Server, anyhow::Error> {
     println!("{}", redis_uri.expose_secret());
     let db_pool = web::Data::new(db_pool);
-    let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await.expect("Failed to connect to redis instance.");
+    let redis_store = RedisSessionStore::new(redis_uri.expose_secret())
+        .await
+        .expect("Failed to connect to redis instance.");
     let email_client = web::Data::new(email_client);
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
@@ -39,7 +44,10 @@ pub async fn run(
         App::new()
             .wrap(TracingLogger::default())
             .wrap(message_framework.clone())
-            .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
+            .wrap(SessionMiddleware::new(
+                redis_store.clone(),
+                secret_key.clone(),
+            ))
             .route("/", web::get().to(home))
             .route("/login", web::get().to(login_form))
             .route("/login", web::post().to(login))
@@ -99,7 +107,8 @@ impl Application {
             configuration.application.base_url,
             configuration.application.hmac_secret,
             configuration.redis_uri,
-        ).await?;
+        )
+        .await?;
         Ok(Self { port, server })
     }
 
@@ -112,6 +121,4 @@ impl Application {
     pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
         self.server.await
     }
-
-    
 }
