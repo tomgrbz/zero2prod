@@ -1,9 +1,7 @@
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::email_client::EmailClient;
-use crate::routes::{
-    confirm, health_check, home, login, login_form, publish_newsletter, subscribe, admin_dashboard
-};
+use crate::routes::{confirm, health_check, home, login, login_form, publish_newsletter, subscribe, admin_dashboard, change_password, change_password_form};
 use actix_web::dev::Server;
 use actix_web::{web, web::Data, App, HttpServer, cookie::Key};
 use actix_web_flash_messages::FlashMessagesFramework;
@@ -29,6 +27,7 @@ pub async fn run(
     hmac_secret: Secret<String>,
     redis_uri: Secret<String>,
 ) -> Result<Server, anyhow::Error> {
+    println!("{}", redis_uri.expose_secret());
     let db_pool = web::Data::new(db_pool);
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret()).await.expect("Failed to connect to redis instance.");
     let email_client = web::Data::new(email_client);
@@ -49,6 +48,8 @@ pub async fn run(
             .route("/subscriptions/confirm", web::get().to(confirm))
             .route("/newsletters", web::post().to(publish_newsletter))
             .route("/admin/dashboard", web::get().to(admin_dashboard))
+            .route("/admin/password", web::get().to(change_password_form))
+            .route("/admin/password", web::post().to(change_password))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())

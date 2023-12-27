@@ -19,6 +19,7 @@ pub async fn login_form(flash_messages: IncomingFlashMessages) -> HttpResponse {
         <title>Login</title>
     </head>
     <body>
+    {error_html}
         <form action="/login" method="post">
             <label>Username
                 <input
