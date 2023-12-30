@@ -99,7 +99,6 @@ async fn current_password_should_match() {
 
 #[tokio::test]
 async fn changing_password_works() {
-
     // Arrange
     let app = spawn_app().await;
     let new_password = Uuid::new_v4().to_string();

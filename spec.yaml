@@ -37,9 +37,9 @@ services:
       - key: APP_APPLICATION__HMAC_SECRET
         scope: RUN_TIME
         value: "super-long-and-secret-random-key-needed-to-verify-message-integrity"
-      - key: APP_REDIS_URI
+      - key: APP_REDIS_URI__REDIS_URI
         scope: RUN_TIME
-        value: "rediss://default:AVNS_lpexgWExsZOqXdfAnSz@db-redis-nyc3-85565-do-user-14191274-0.c.db.ondigitalocean.com:25061"
+        value: ${APP_REDIS_URI}
 databases:
   # PG = Postgres
   - engine: PG
