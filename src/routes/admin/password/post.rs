@@ -1,4 +1,5 @@
 use crate::authentication::{validate_credentials, AuthError, Credentials};
+use crate::authentication::UserId;
 use crate::routes::admin::dashboard::get_username;
 use crate::session_state::TypedSession;
 use crate::utils::{e500, see_other};
@@ -18,7 +19,7 @@ pub struct FormData {
 
 pub async fn change_password(
     form: web::Form<FormData>,
-    session: TypedSession,
+    user_id: web::ReqData<UserId>,
     pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
     if (12 > form.0.new_password.expose_secret().len())
@@ -27,7 +28,9 @@ pub async fn change_password(
         FlashMessage::error("New password must be within 12 and 128 characters.").send();
         return Ok(see_other("/admin/password"));
     }
-    let user_id = reject_anonymous_users(session).await?;
+    let user_id = user_id.into_inner();
+
+    let username = get_username(*user_id, &pool).await.map_err(e500)?;
 
     if form.new_password.expose_secret() != form.new_password_check.expose_secret() {
         FlashMessage::error(
@@ -36,7 +39,6 @@ pub async fn change_password(
         .send();
         return Ok(see_other("/admin/password"));
     }
-    let username = get_username(user_id, &pool).await.map_err(e500)?;
 
     let credentials = Credentials {
         username,
@@ -51,7 +53,7 @@ pub async fn change_password(
             AuthError::UnexpectedError(_) => Err(e500(e)),
         };
     }
-    crate::authentication::change_password(user_id, form.0.new_password, &pool)
+    crate::authentication::change_password(*user_id, form.0.new_password, &pool)
         .await
         .map_err(e500)?;
     FlashMessage::error("Your password has been changed.").send();
