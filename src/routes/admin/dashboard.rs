@@ -1,12 +1,11 @@
-
 use crate::utils::e500;
 use actix_web::http::header::ContentType;
 
-use actix_web::{web::Data, HttpResponse, web};
+use crate::authentication::UserId;
+use actix_web::{web, web::Data, HttpResponse};
 use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::authentication::UserId;
 
 pub async fn admin_dashboard(
     user_id: web::ReqData<UserId>,
