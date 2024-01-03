@@ -4,7 +4,7 @@ use crate::configuration::Settings;
 use crate::email_client::EmailClient;
 use crate::routes::{
     admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
-    login_form, logout, publish_newsletter, subscribe,
+    login_form, logout, publish_newsletter, submit_newsletter_form, subscribe,
 };
 use actix_session::{storage::RedisSessionStore, SessionMiddleware};
 use actix_web::dev::Server;
@@ -33,12 +33,12 @@ pub async fn run(
     redis_uri: Secret<String>,
 ) -> Result<Server, anyhow::Error> {
     println!("{}", redis_uri.expose_secret());
-    let db_pool = web::Data::new(db_pool);
+    let db_pool = Data::new(db_pool);
     let redis_store = RedisSessionStore::new(redis_uri.expose_secret())
         .await
         .expect("Failed to connect to redis instance.");
-    let email_client = web::Data::new(email_client);
-    let base_url = web::Data::new(ApplicationBaseUrl(base_url));
+    let email_client = Data::new(email_client);
+    let base_url = Data::new(ApplicationBaseUrl(base_url));
     let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
     let message_store = CookieMessageStore::builder(secret_key.clone()).build();
     let message_framework = FlashMessagesFramework::builder(message_store).build();
@@ -63,7 +63,8 @@ pub async fn run(
                     .route("/dashboard", web::get().to(admin_dashboard))
                     .route("/password", web::get().to(change_password_form))
                     .route("/password", web::post().to(change_password))
-                    .route("/logout", web::post().to(logout)),
+                    .route("/logout", web::post().to(logout))
+                    .route("/newsletters", web::get().to(submit_newsletter_form)),
             )
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
