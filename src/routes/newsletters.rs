@@ -129,7 +129,7 @@ pub async fn publish_newsletter(
     request: HttpRequest,
 ) -> Result<HttpResponse, PublishError> {
     let credentials = basic_authentication(request.headers())
-        // Bubble up the error, performing the ncessary conversion
+        // Bubble up the error, performing the necessary conversion
         .map_err(PublishError::AuthError)?;
     tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
     let user_id = validate_credentials(credentials, &pool)
