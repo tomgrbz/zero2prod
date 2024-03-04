@@ -2,10 +2,7 @@ use crate::authentication::reject_anonymous_users;
 use crate::configuration::DatabaseSettings;
 use crate::configuration::Settings;
 use crate::email_client::EmailClient;
-use crate::routes::{
-    admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
-    login_form, logout, publish_newsletter, submit_newsletter_form, subscribe,
-};
+use crate::routes::{admin_dashboard, change_password, change_password_form, confirm, health_check, home, login, login_form, logout, publish_newsletter, publish_newsletter_form, subscribe};
 use actix_session::{storage::RedisSessionStore, SessionMiddleware};
 use actix_web::dev::Server;
 use actix_web::{cookie::Key, web, web::Data, App, HttpServer};
@@ -56,7 +53,6 @@ pub async fn run(
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/subscriptions/confirm", web::get().to(confirm))
-            .route("/newsletters", web::post().to(publish_newsletter))
             .service(
                 web::scope("/admin")
                     .wrap(from_fn(reject_anonymous_users))
@@ -64,7 +60,8 @@ pub async fn run(
                     .route("/password", web::get().to(change_password_form))
                     .route("/password", web::post().to(change_password))
                     .route("/logout", web::post().to(logout))
-                    .route("/newsletters", web::get().to(submit_newsletter_form)),
+                    .route("/newsletters", web::get().to(publish_newsletter_form))
+                    .route("/newsletters", web::post().to(publish_newsletter)),
             )
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
